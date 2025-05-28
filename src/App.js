@@ -5,6 +5,7 @@ function App() {
     "saurabhmishra1491",
     "_restart_2024",
     "urstrulyatish",
+    "kumarhritick932003",
   ]);
   const [newUsername, setNewUsername] = useState("");
   const [data, setData] = useState({});
