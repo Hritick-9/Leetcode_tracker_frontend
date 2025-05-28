@@ -22,21 +22,39 @@ function App() {
     );
   };
 
-  // Fetch submissions for given usernames
+  function convertToIST(timeStr) {
+    const date = new Date(timeStr);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    // Add 5 hours 30 minutes
+    const istDate = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
+    return istDate.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+  }
+
   async function fetchSubmissions(userList) {
     setLoading(true);
     setError(null);
     const results = { ...data };
-    const validUsernames = [...usernames]; // copy current usernames list
+    const validUsernames = [...usernames];
 
     try {
       for (const user of userList) {
-        if (results[user]) continue; // Skip if already fetched
-        const res = await fetch("https://leetcode-tracker-backend-ogqw.onrender.com/api/submissions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: user }),
-        });
+        if (results[user]) continue;
+        const res = await fetch(
+          "https://leetcode-tracker-backend-ogqw.onrender.com/api/submissions",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user }),
+          }
+        );
 
         if (!res.ok) {
           const errData = await res.json();
@@ -47,9 +65,7 @@ function App() {
         if (json.submissions && json.submissions.length > 0) {
           results[user] = json.submissions;
         } else {
-          // No submissions — remove from usernames list if it was newly added
           if (userList.length === 1) {
-            // userList contains only newly added user
             const index = validUsernames.indexOf(user);
             if (index !== -1) {
               validUsernames.splice(index, 1);
@@ -67,13 +83,11 @@ function App() {
     }
   }
 
-  // Initial fetch on mount
   useEffect(() => {
     fetchSubmissions(usernames);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle form submit to add a username
   const handleAddUser = (e) => {
     e.preventDefault();
     const trimmed = newUsername.trim();
@@ -82,7 +96,6 @@ function App() {
       alert("Username already exists");
       return;
     }
-    // Temporarily add to usernames so fetch knows the full list
     setUsernames((prev) => [...prev, trimmed]);
     fetchSubmissions([trimmed]);
     setNewUsername("");
@@ -133,7 +146,6 @@ function App() {
                     >
                       Problem
                     </th>
-
                     <th
                       style={{
                         borderBottom: "1px solid #ccc",
@@ -142,7 +154,6 @@ function App() {
                     >
                       Link to Problem
                     </th>
-
                     <th
                       style={{
                         borderBottom: "1px solid #ccc",
@@ -157,7 +168,7 @@ function App() {
                         padding: "0.5rem",
                       }}
                     >
-                      Time
+                      Time (IST)
                     </th>
                   </tr>
                 </thead>
@@ -187,7 +198,6 @@ function App() {
                           Click Me
                         </a>
                       </td>
-
                       <td
                         style={{
                           borderBottom: "1px solid #eee",
@@ -202,7 +212,7 @@ function App() {
                           padding: "0.5rem",
                         }}
                       >
-                        {sub.time}
+                        {convertToIST(sub.time)}
                       </td>
                     </tr>
                   ))}
@@ -215,7 +225,6 @@ function App() {
         );
       })}
 
-      {/* Input form to add username */}
       <form
         onSubmit={handleAddUser}
         style={{
