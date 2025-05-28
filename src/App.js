@@ -1,23 +1,252 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from "react";
 
 function App() {
+  const [usernames, setUsernames] = useState([
+    "saurabhmishra1491",
+    "_restart_2024",
+    "urstrulyatish",
+  ]);
+  const [newUsername, setNewUsername] = useState("");
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const isToday = (timeString) => {
+    const date = new Date(timeString);
+    if (isNaN(date.getTime())) return false;
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Fetch submissions for given usernames
+  async function fetchSubmissions(userList) {
+    setLoading(true);
+    setError(null);
+    const results = { ...data };
+    const validUsernames = [...usernames]; // copy current usernames list
+
+    try {
+      for (const user of userList) {
+        if (results[user]) continue; // Skip if already fetched
+        const res = await fetch("https://leetcode-tracker-backend-ogqw.onrender.com/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(`Error for ${user}: ${errData.error || res.statusText}`);
+        }
+
+        const json = await res.json();
+        if (json.submissions && json.submissions.length > 0) {
+          results[user] = json.submissions;
+        } else {
+          // No submissions — remove from usernames list if it was newly added
+          if (userList.length === 1) {
+            // userList contains only newly added user
+            const index = validUsernames.indexOf(user);
+            if (index !== -1) {
+              validUsernames.splice(index, 1);
+              alert(`User "${user}" has zero submissions and will not be added.`);
+            }
+          }
+        }
+      }
+      setData(results);
+      setUsernames(validUsernames);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchSubmissions(usernames);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle form submit to add a username
+  const handleAddUser = (e) => {
+    e.preventDefault();
+    const trimmed = newUsername.trim();
+    if (!trimmed) return;
+    if (usernames.includes(trimmed)) {
+      alert("Username already exists");
+      return;
+    }
+    // Temporarily add to usernames so fetch knows the full list
+    setUsernames((prev) => [...prev, trimmed]);
+    fetchSubmissions([trimmed]);
+    setNewUsername("");
+  };
+
+  if (loading && Object.keys(data).length === 0)
+    return <p>Loading submissions...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <div
+      style={{
+        maxWidth: 900,
+        margin: "2rem auto",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <h2>LeetCode Submissions Tracker</h2>
+
+      {usernames.map((user) => {
+        const submissions = data[user] || [];
+        const todayCount = submissions.filter((s) => isToday(s.time)).length;
+
+        return (
+          <div key={user} style={{ marginBottom: "3rem" }}>
+            <h3>
+              {user} —{" "}
+              <span style={{ fontWeight: "normal" }}>
+                {todayCount} submissions today
+              </span>
+            </h3>
+            {submissions.length > 0 ? (
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "left",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      style={{
+                        borderBottom: "1px solid #ccc",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      Problem
+                    </th>
+
+                    <th
+                      style={{
+                        borderBottom: "1px solid #ccc",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      Link to Problem
+                    </th>
+
+                    <th
+                      style={{
+                        borderBottom: "1px solid #ccc",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      Language
+                    </th>
+                    <th
+                      style={{
+                        borderBottom: "1px solid #ccc",
+                        padding: "0.5rem",
+                      }}
+                    >
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((sub) => (
+                    <tr key={sub.id}>
+                      <td
+                        style={{
+                          borderBottom: "1px solid #eee",
+                          padding: "0.5rem",
+                        }}
+                      >
+                        {sub.title}
+                      </td>
+                      <td
+                        style={{
+                          borderBottom: "1px solid #eee",
+                          padding: "0.5rem",
+                        }}
+                      >
+                        <a
+                          href={`https://leetcode.com/problems/${sub.titleSlug}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "#0074d9", textDecoration: "none" }}
+                        >
+                          Click Me
+                        </a>
+                      </td>
+
+                      <td
+                        style={{
+                          borderBottom: "1px solid #eee",
+                          padding: "0.5rem",
+                        }}
+                      >
+                        {sub.language}
+                      </td>
+                      <td
+                        style={{
+                          borderBottom: "1px solid #eee",
+                          padding: "0.5rem",
+                        }}
+                      >
+                        {sub.time}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No submissions found.</p>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Input form to add username */}
+      <form
+        onSubmit={handleAddUser}
+        style={{
+          marginTop: "2rem",
+          display: "flex",
+          maxWidth: 400,
+          gap: "0.5rem",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Add LeetCode username"
+          value={newUsername}
+          onChange={(e) => setNewUsername(e.target.value)}
+          style={{ flex: 1, padding: "0.5rem", fontSize: "1rem" }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "0.5rem 1rem",
+            fontSize: "1rem",
+            cursor: "pointer",
+          }}
         >
-          Learn React
-        </a>
-      </header>
+          Add
+        </button>
+      </form>
+
+      {loading && Object.keys(data).length > 0 && (
+        <p style={{ marginTop: "1rem" }}>Loading new submissions...</p>
+      )}
     </div>
   );
 }
