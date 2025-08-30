@@ -7,6 +7,7 @@ function App() {
     "urstrulyatish",
     "kumarhritick932003",
     "goyalyashgoyal11",
+    "kush1610"
   ]);
   const [newUsername, setNewUsername] = useState("");
   const [data, setData] = useState({});
